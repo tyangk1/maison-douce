@@ -164,4 +164,3 @@ No Three.js dependency — raw GL achieves the effect at ~2KB instead of ~600KB.
 | Fonts | next/font self-hosted, `display: swap`, 2 families max |
 | CLS | 0 (aspect-ratio boxes reserved for all media) |
 | WebGL JS cost | dynamic chunk, idle-loaded, ≤ 3KB gz |
-
