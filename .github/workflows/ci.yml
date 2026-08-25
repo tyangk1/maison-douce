@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Secret / env hygiene check
+        run: |
+          if git ls-files --error-unmatch .env 2>/dev/null; then
+            echo "::error::.env is tracked in git — remove it"; exit 1
+          fi
+          if grep -rIl --exclude-dir=node_modules --exclude-dir=.next -E "(sk_live_[0-9a-zA-Z]{20,}|ghp_[0-9a-zA-Z]{36}|SUPABASE_SERVICE_ROLE_KEY=.+)" .; then
+            echo "::error::Potential secret committed"; exit 1
+          fi
+          echo "OK: no tracked .env, no obvious secrets"
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Database schema validation
+        run: npx prisma validate
+        env:
+          DATABASE_URL: "file:./ci.db"
+
+      - name: Apply migrations to a throwaway database
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: "file:./ci.db"
+
+      - name: Unit / integration tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          DATABASE_URL: "file:./ci.db"
+          AUTH_SECRET: "ci-only-secret-value-used-for-build-0123456789"
+
+      - name: Seed smoke test (throwaway DB)
+        run: npx tsx prisma/seed.ts
+        env:
+          DATABASE_URL: "file:./ci-seed.db"
+          AUTH_SECRET: "ci-only-secret-value-used-for-build-0123456789"
