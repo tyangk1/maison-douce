@@ -14,6 +14,7 @@ type Promo = {
   minSubtotalCents: number;
   active: boolean;
   endsAt?: string | null;
+  usages?: number;
 };
 
 const inputCls = "w-full rounded-lg border border-white/15 bg-black/30 px-3.5 py-2.5 text-sm outline-none transition focus:border-amber-600/70 focus:ring-2 focus:ring-amber-700/25";
@@ -96,6 +97,7 @@ export default function AdminPromotionsPage() {
                     {p.title}
                     <span className="block text-xs text-stone-500">
                       {p.type === "PERCENT" ? `${p.value}% off` : `${formatPrice(p.value)} off`}
+                      {typeof p.usages === "number" && p.usages > 0 ? ` · ${p.usages} redemption${p.usages === 1 ? "" : "s"}` : ""}
                     </span>
                   </td>
                   <td className="px-5 py-3">{formatPrice(p.minSubtotalCents)}</td>

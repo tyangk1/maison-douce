@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useStore } from "@/components/store/store-provider";
+import { getLineKey } from "@/components/store/store-provider";
 import { SmartImage } from "@/components/ui/smart-image";
 import { formatPrice, deliveryFeeFor, FREE_DELIVERY_THRESHOLD_CENTS } from "@/lib/money";
 
@@ -58,7 +59,7 @@ export function CartDrawer() {
               <>
                 <ul className="flex-1 divide-y divide-espresso/8 overflow-y-auto px-6">
                   {lines.map((l) => (
-                    <li key={l.productId} className="flex gap-4 py-4">
+                    <li key={getLineKey(l)} className="flex gap-4 py-4">
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-cream">
                         <SmartImage src={l.image} alt={l.name} fill sizes="80px" className="object-cover" />
                       </div>
@@ -69,6 +70,9 @@ export function CartDrawer() {
                           </Link>
                           <span className="shrink-0 text-sm font-semibold">{formatPrice(l.priceCents * l.quantity)}</span>
                         </div>
+                        {l.variantName && (
+                          <p className="mt-0.5 text-xs text-caramel">{l.variantName}</p>
+                        )}
                         <p className="mt-0.5 text-xs text-cocoa/70">{formatPrice(l.priceCents)} each</p>
                         <div className="mt-2 flex items-center justify-between">
                           <div className="inline-flex items-center rounded-full border border-espresso/15">
@@ -76,7 +80,7 @@ export function CartDrawer() {
                               type="button"
                               className="h-7 w-7 text-sm"
                               aria-label={`Decrease ${l.name} quantity`}
-                              onClick={() => updateQuantity(l.productId, l.quantity - 1)}
+                              onClick={() => updateQuantity(getLineKey(l), l.quantity - 1)}
                             >
                               −
                             </button>
@@ -86,14 +90,14 @@ export function CartDrawer() {
                               disabled={l.quantity >= l.stockQuantity}
                               className="h-7 w-7 text-sm disabled:opacity-30"
                               aria-label={`Increase ${l.name} quantity`}
-                              onClick={() => updateQuantity(l.productId, l.quantity + 1)}
+                              onClick={() => updateQuantity(getLineKey(l), l.quantity + 1)}
                             >
                               +
                             </button>
                           </div>
                           <button
                             type="button"
-                            onClick={() => removeLine(l.productId)}
+                            onClick={() => removeLine(getLineKey(l))}
                             className="text-xs text-bark/70 underline-offset-2 hover:text-red-800 hover:underline"
                           >
                             Remove
@@ -136,3 +140,4 @@ export function CartDrawer() {
     </AnimatePresence>
   );
 }
+

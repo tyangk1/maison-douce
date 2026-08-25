@@ -28,6 +28,7 @@ export const profileUpdateSchema = z.object({
 export const cartLineSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().min(1).max(50),
+  variantId: z.string().min(1).optional(),
 });
 
 export const checkoutSchema = z

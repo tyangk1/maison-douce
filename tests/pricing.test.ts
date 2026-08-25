@@ -98,6 +98,28 @@ describe("priceCart", () => {
     expect(result.issues.join(" ")).toContain("minimum spend");
   });
 
+  it("applies server-side variant price deltas and ignores unknown variant ids", async () => {
+    mockDb.product.findMany.mockResolvedValue([
+      {
+        id: "a1", name: "Sourdough", slug: "sourdough", priceCents: 650, status: "ACTIVE",
+        inventory: { quantity: 5 }, images: [],
+        variants: [
+          { id: "v1", name: "Whole loaf", priceDeltaCents: 0 },
+          { id: "v2", name: "Half loaf", priceDeltaCents: -250 },
+        ],
+      },
+    ]);
+    mockDb.promotion.findUnique.mockResolvedValue(null);
+
+    const half = await priceCart([{ productId: "a1", quantity: 1, variantId: "v2" }]);
+    expect(half.lines[0].unitCents).toBe(400);
+    expect(half.lines[0].variantName).toBe("Half loaf");
+
+    const forged = await priceCart([{ productId: "a1", quantity: 1, variantId: "forged-id" }]);
+    expect(forged.lines[0].unitCents).toBe(650); // falls back to base price
+    expect(forged.lines[0].variantName).toBeNull();
+  });
+
   it("pickup orders carry no delivery fee", async () => {
     mockDb.product.findMany.mockResolvedValue([
       { id: "a1", name: "Cookie box", slug: "cookies", priceCents: 1250, status: "ACTIVE", inventory: { quantity: 5 }, images: [] },

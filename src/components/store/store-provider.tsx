@@ -10,7 +10,15 @@ export type CartLine = {
   image: string | null;
   quantity: number;
   stockQuantity: number;
+  variantId?: string;
+  variantName?: string | null;
 };
+
+const lineKey = (l: { productId: string; variantId?: string }) => `${l.productId}:${l.variantId ?? "base"}`;
+
+export function getLineKey(l: { productId: string; variantId?: string }) {
+  return lineKey(l);
+}
 
 type StoreContextValue = {
   lines: CartLine[];
@@ -67,10 +75,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = useCallback((line: Omit<CartLine, "quantity">, quantity = 1) => {
     setLines((prev) => {
-      const existing = prev.find((l) => l.productId === line.productId);
+      const existing = prev.find((l) => lineKey(l) === lineKey(line));
       if (existing) {
         return prev.map((l) =>
-          l.productId === line.productId
+          lineKey(l) === lineKey(line)
             ? { ...l, quantity: Math.min(l.quantity + quantity, Math.max(1, l.stockQuantity)) }
             : l
         );
@@ -82,20 +90,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setLastAdded(null), 2600);
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((key: string, quantity: number) => {
     setLines((prev) =>
       quantity <= 0
-        ? prev.filter((l) => l.productId !== productId)
+        ? prev.filter((l) => lineKey(l) !== key)
         : prev.map((l) =>
-            l.productId === productId
+            lineKey(l) === key
               ? { ...l, quantity: Math.min(quantity, Math.max(1, l.stockQuantity || quantity)) }
               : l
           )
     );
   }, []);
 
-  const removeLine = useCallback((productId: string) => {
-    setLines((prev) => prev.filter((l) => l.productId !== productId));
+  const removeLine = useCallback((key: string) => {
+    setLines((prev) => prev.filter((l) => lineKey(l) !== key));
   }, []);
 
   const clearCart = useCallback(() => setLines([]), []);
@@ -133,3 +141,4 @@ export function useStore(): StoreContextValue {
   if (!ctx) throw new Error("useStore must be used within StoreProvider");
   return ctx;
 }
+

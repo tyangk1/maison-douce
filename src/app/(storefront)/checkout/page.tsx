@@ -80,7 +80,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
+          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, variantId: l.variantId })),
           checkout: {
             email: form.email,
             customerName: form.customerName,
@@ -211,7 +211,10 @@ export default function CheckoutPage() {
           <ul className="mt-4 space-y-3 text-sm">
             {lines.map((l) => (
               <li key={l.productId} className="flex justify-between gap-3">
-                <span className="min-w-0 truncate text-cocoa/85">{l.quantity} × {l.name}</span>
+                <span className="min-w-0 truncate text-cocoa/85">
+                  {l.quantity} × {l.name}
+                  {l.variantName ? ` (${l.variantName})` : ""}
+                </span>
                 <span className="shrink-0">{formatPrice(l.priceCents * l.quantity)}</span>
               </li>
             ))}
@@ -303,3 +306,4 @@ function Field({
     </div>
   );
 }
+

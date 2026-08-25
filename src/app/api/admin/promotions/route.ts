@@ -7,7 +7,10 @@ import { promotionInputSchema } from "@/lib/validation";
 export async function GET() {
   try {
     await requireAdmin();
-    const promotions = await db.promotion.findMany({ orderBy: { createdAt: "desc" } });
+    const promotions = await db.promotion.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { usages: true } } },
+    });
     return NextResponse.json({ promotions });
   } catch (e) {
     return handleApiError(e);

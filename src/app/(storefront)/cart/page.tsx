@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useStore } from "@/components/store/store-provider";
+import { useStore, getLineKey } from "@/components/store/store-provider";
 import { SmartImage } from "@/components/ui/smart-image";
 import { formatPrice, deliveryFeeFor, FREE_DELIVERY_THRESHOLD_CENTS } from "@/lib/money";
 
@@ -40,7 +40,7 @@ export default function CartPage() {
         <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
           <ul className="divide-y divide-espresso/10 border-y border-espresso/10">
             {lines.map((l) => (
-              <li key={l.productId} className="flex gap-5 py-6">
+              <li key={getLineKey(l)} className="flex gap-5 py-6">
                 <Link href={`/product/${l.slug}`} className="relative h-28 w-24 shrink-0 overflow-hidden rounded-lg bg-cream">
                   <SmartImage src={l.image} alt={l.name} fill sizes="96px" className="object-cover" />
                 </Link>
@@ -49,22 +49,25 @@ export default function CartPage() {
                     <Link href={`/product/${l.slug}`} className="font-display text-lg leading-snug hover:underline">
                       {l.name}
                     </Link>
+                    {l.variantName && (
+                      <span className="ml-2 rounded-full bg-sand/70 px-2 py-0.5 text-[11px] font-medium text-bark">{l.variantName}</span>
+                    )}
                     <span className="shrink-0 font-semibold">{formatPrice(l.priceCents * l.quantity)}</span>
                   </div>
                   <p className="mt-1 text-xs text-cocoa/70">{formatPrice(l.priceCents)} each · {l.stockQuantity} available</p>
                   <div className="mt-auto flex items-center justify-between pt-3">
                     <div className="inline-flex items-center rounded-full border border-espresso/15" role="group" aria-label={`Quantity for ${l.name}`}>
-                      <button type="button" className="h-9 w-9" aria-label="Decrease quantity" onClick={() => updateQuantity(l.productId, l.quantity - 1)}>−</button>
+                      <button type="button" className="h-9 w-9" aria-label="Decrease quantity" onClick={() => updateQuantity(getLineKey(l), l.quantity - 1)}>−</button>
                       <span aria-live="polite" className="w-8 text-center text-sm font-medium">{l.quantity}</span>
                       <button
                         type="button"
                         disabled={l.quantity >= l.stockQuantity}
                         className="h-9 w-9 disabled:opacity-30"
                         aria-label="Increase quantity"
-                        onClick={() => updateQuantity(l.productId, l.quantity + 1)}
+                        onClick={() => updateQuantity(getLineKey(l), l.quantity + 1)}
                       >+</button>
                     </div>
-                    <button type="button" onClick={() => removeLine(l.productId)} className="text-xs text-bark/70 underline-offset-2 hover:text-red-800 hover:underline">
+                    <button type="button" onClick={() => removeLine(getLineKey(l))} className="text-xs text-bark/70 underline-offset-2 hover:text-red-800 hover:underline">
                       Remove
                     </button>
                   </div>
@@ -96,3 +99,4 @@ export default function CartPage() {
     </div>
   );
 }
+

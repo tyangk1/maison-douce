@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { SmartImage } from "@/components/ui/smart-image";
 import { useStore } from "@/components/store/store-provider";
+import { formatPrice } from "@/lib/money";
 
 export type ProductDetailData = {
   id: string;
@@ -16,14 +17,21 @@ export type ProductDetailData = {
 
 export function ProductPurchasePanel({
   product,
+  variants = [],
 }: {
   product: ProductDetailData;
+  variants?: { id: string; name: string; priceDeltaCents: number }[];
 }) {
   const { addToCart, toggleFavorite, isFavorite, openDrawer } = useStore();
+  const [variantId, setVariantId] = useState<string | null>(
+    variants.find((v) => v.priceDeltaCents === 0)?.id ?? variants[0]?.id ?? null
+  );
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const soldOut = product.stockQuantity <= 0;
   const fav = isFavorite(product.id);
+  const activeVariant = variants.find((v) => v.id === variantId) ?? null;
+  const unitPrice = product.priceCents + (activeVariant?.priceDeltaCents ?? 0);
 
   function add() {
     addToCart(
@@ -31,9 +39,11 @@ export function ProductPurchasePanel({
         productId: product.id,
         slug: product.slug,
         name: product.name,
-        priceCents: product.priceCents,
+        priceCents: unitPrice,
         image: product.images[0]?.url ?? null,
         stockQuantity: product.stockQuantity,
+        variantId: activeVariant?.id,
+        variantName: activeVariant?.name ?? null,
       },
       quantity
     );
@@ -42,7 +52,44 @@ export function ProductPurchasePanel({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-5">
+      {variants.length > 0 && (
+        <div>
+          <p className="field-label">Choose an option</p>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Product options">
+            {variants.map((v) => (
+              <button
+                key={v.id}
+                type="button"
+                role="radio"
+                aria-checked={variantId === v.id}
+                onClick={() => setVariantId(v.id)}
+                className={`rounded-full border px-4 py-2 text-sm transition-all ${
+                  variantId === v.id
+                    ? "border-espresso bg-espresso text-parchment"
+                    : "border-espresso/20 hover:border-espresso"
+                }`}
+              >
+                {v.name}
+                {v.priceDeltaCents !== 0 && (
+                  <span className="ml-1.5 text-xs opacity-75">
+                    {v.priceDeltaCents > 0 ? "+" : "−"}
+                    {formatPrice(Math.abs(v.priceDeltaCents))}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        {variants.length > 0 && (
+          <p aria-live="polite" className="w-full text-sm font-semibold">
+            {formatPrice(unitPrice)}
+            <span className="ml-1 font-normal text-cocoa/60">× {quantity} = {formatPrice(unitPrice * quantity)}</span>
+          </p>
+        )}
       <div className="inline-flex items-center rounded-full border border-espresso/20" role="group" aria-label="Quantity">
         <button
           type="button"
@@ -98,6 +145,7 @@ export function ProductPurchasePanel({
           <path d="M12 21s-7.5-4.7-10-9.3C.5 8 2.6 4 6.5 4c2.1 0 3.7 1.2 4.5 2.5h2c.8-1.3 2.4-2.5 4.5-2.5 3.9 0 6 4 4.5 7.7C19.5 16.3 12 21 12 21z" />
         </svg>
       </button>
+      </div>
     </div>
   );
 }

@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
             create: priced.lines.map((l) => ({
               productId: l.productId,
               productName: l.name,
+              variantName: l.variantName,
               unitCents: l.unitCents,
               quantity: l.quantity,
             })),
@@ -98,6 +99,21 @@ export async function POST(req: NextRequest) {
         },
       });
     });
+
+    // Record promotion redemption for campaign analytics.
+    if (priced.promotion && priced.discountCents > 0) {
+      const promo = await db.promotion.findUnique({ where: { code: priced.promotion.code } });
+      if (promo) {
+        await db.promotionUsage.create({
+          data: {
+            promotionId: promo.id,
+            orderId: order.id,
+            email: parsed.checkout.email,
+            discountCents: priced.discountCents,
+          },
+        });
+      }
+    }
 
     await db.activityLog.create({
       data: {

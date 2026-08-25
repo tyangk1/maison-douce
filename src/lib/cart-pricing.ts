@@ -12,6 +12,8 @@ export type PricedLine = {
   lineCents: number;
   available: boolean;
   stockQuantity: number;
+  variantId: string | null;
+  variantName: string | null;
 };
 
 export type PricedCart = {
@@ -49,14 +51,18 @@ export async function findActivePromotion(code?: string): Promise<Promotion | nu
  * Re-prices a cart entirely from database truth. Client prices are never trusted.
  */
 export async function priceCart(
-  lines: { productId: string; quantity: number }[],
+  lines: { productId: string; quantity: number; variantId?: string }[],
   promoCode?: string,
   fulfilment: "DELIVERY" | "PICKUP" = "DELIVERY"
 ): Promise<PricedCart> {
   const ids = [...new Set(lines.map((l) => l.productId))];
   const products = await db.product.findMany({
     where: { id: { in: ids }, status: "ACTIVE" },
-    include: { inventory: true, images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    include: {
+      inventory: true,
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
+      variants: { orderBy: { sortOrder: "asc" } },
+    },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
@@ -69,6 +75,12 @@ export async function priceCart(
       issues.push("An item in your cart is no longer available and was removed.");
       continue;
     }
+    // Variant delta is always resolved server-side; unknown variants fall back
+    // to the base product price rather than trusting the client.
+    const variant =
+      line.variantId ? product.variants.find((v) => v.id === line.variantId) ?? null : null;
+    const unitCents = product.priceCents + (variant?.priceDeltaCents ?? 0);
+
     const stock = product.inventory?.quantity ?? 0;
     const qty = Math.max(1, Math.min(line.quantity, 50));
     if (stock <= 0) {
@@ -84,11 +96,13 @@ export async function priceCart(
       name: product.name,
       slug: product.slug,
       image: product.images[0]?.url ?? null,
-      unitCents: product.priceCents,
+      unitCents,
       quantity: finalQty,
-      lineCents: product.priceCents * finalQty,
+      lineCents: unitCents * finalQty,
       available: true,
       stockQuantity: stock,
+      variantId: variant?.id ?? null,
+      variantName: variant?.name ?? null,
     });
   }
 

@@ -505,6 +505,8 @@ async function main() {
 
   await db.orderItem.deleteMany();
   await db.payment.deleteMany();
+  await db.promotionUsage.deleteMany();
+  await db.productVariant.deleteMany();
   await db.order.deleteMany();
   await db.wishlistItem.deleteMany();
   await db.wishlist.deleteMany();
@@ -552,6 +554,25 @@ async function main() {
         images: {
           create: p.images.map((url, i) => ({ url, alt: `${p.name}`, sortOrder: i })),
         },
+        variants: {
+          create:
+            p.slug === "sourdough-country-loaf"
+              ? [
+                  { name: "Whole loaf", priceDeltaCents: 0, isDefault: true, sortOrder: 0 },
+                  { name: "Half loaf", priceDeltaCents: -250, isDefault: false, sortOrder: 1 },
+                ]
+              : p.slug === "burnt-basque-cheesecake"
+                ? [
+                    { name: "Serves 4", priceDeltaCents: -800, isDefault: false, sortOrder: 0 },
+                    { name: "Serves 8", priceDeltaCents: 0, isDefault: true, sortOrder: 1 },
+                  ]
+                : p.slug === "chocolate-chunk-cookies" || p.slug === "buckwheat-cacao-nib-cookies"
+                  ? [
+                      { name: "Box of 4", priceDeltaCents: 0, isDefault: true, sortOrder: 0 },
+                      { name: "Box of 8", priceDeltaCents: 1100, isDefault: false, sortOrder: 1 },
+                    ]
+                  : [],
+        },
         inventory: {
           create: {
             quantity: p.quantity,
@@ -581,6 +602,19 @@ async function main() {
     data: { userId: customer.id, items: { create: [{ productId: productIds[4].id }, { productId: productIds[0].id }] } },
   });
 
+  // Promotions / marketing --------------------------------------------
+  for (const p of promotions) {
+    await db.promotion.create({ data: { ...p, active: true } });
+  }
+  await db.newsletterSubscriber.createMany({
+    data: [
+      { email: "hello@foodielondon.test", source: "footer" },
+      { email: "bakes@example.org", source: "homepage" },
+    ],
+  });
+  await db.contactMessage.create({
+    data: { name: "Marco Bellini", email: "marco@example.com", subject: "Wedding cake enquiry", message: "Hello! We're getting married next June and would love to discuss a pistachio and rose celebration cake for 90 guests." },
+  });
   // Orders ------------------------------------------------------------
   const statuses = ["COMPLETED", "COMPLETED", "OUT_FOR_DELIVERY", "BAKING", "PAID", "CANCELLED"];
   const names = [
@@ -635,22 +669,16 @@ async function main() {
         },
       },
     });
+    if (discount > 0) {
+      const promo = await db.promotion.findUnique({ where: { code: "WELCOME10" } });
+      if (promo) {
+        await db.promotionUsage.create({
+          data: { promotionId: promo.id, orderId: order.id, email: cust.email, discountCents: discount },
+        });
+      }
+    }
     void order;
   }
-
-  // Promotions / marketing --------------------------------------------
-  for (const p of promotions) {
-    await db.promotion.create({ data: { ...p, active: true } });
-  }
-  await db.newsletterSubscriber.createMany({
-    data: [
-      { email: "hello@foodielondon.test", source: "footer" },
-      { email: "bakes@example.org", source: "homepage" },
-    ],
-  });
-  await db.contactMessage.create({
-    data: { name: "Marco Bellini", email: "marco@example.com", subject: "Wedding cake enquiry", message: "Hello! We're getting married next June and would love to discuss a pistachio and rose celebration cake for 90 guests." },
-  });
 
   // Site content -------------------------------------------------------
   const settings: Record<string, unknown> = {
@@ -696,3 +724,4 @@ main()
     process.exit(1);
   })
   .finally(() => db.$disconnect());
+

@@ -15,6 +15,7 @@ async function getProduct(slug: string) {
       images: { orderBy: { sortOrder: "asc" } },
       inventory: true,
       category: true,
+      variants: { orderBy: { sortOrder: "asc" } },
     },
   });
 }
@@ -102,6 +103,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
                 images: product.images.map((i) => ({ url: i.url, alt: i.alt })),
                 stockQuantity: stock,
               }}
+              variants={product.variants.map((v) => ({ id: v.id, name: v.name, priceDeltaCents: v.priceDeltaCents }))}
             />
           </div>
 

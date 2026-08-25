@@ -1,9 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SmartImage } from "@/components/ui/smart-image";
+
+/**
+ * The WebGL layer is dynamically imported after mount so it never blocks
+ * LCP; on reduced-motion or low-end devices nothing extra loads at all.
+ */
+const HeroCanvas = dynamic(() => import("./hero-canvas"), {
+  ssr: false,
+  loading: () => <div aria-hidden className="absolute inset-0 bg-gradient-to-bl from-parchment via-cream to-sand" />,
+});
+
+function DeferredHeroCanvas() {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), 800);
+    return () => clearTimeout(t);
+  }, []);
+  return show ? <HeroCanvas /> : null;
+}
 
 export function Hero({
   eyebrow,
@@ -26,7 +45,8 @@ export function Hero({
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-cream">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:pb-24 lg:pt-20">
+      <DeferredHeroCanvas />
+      <div className="relative mx-auto grid max-w-7xl gap-10 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:gap-16 lg:px-8 lg:pb-24 lg:pt-20">
         <motion.div style={{ opacity: fade }}>
           <motion.p
             initial={{ opacity: 0, y: 12 }}
