@@ -36,8 +36,10 @@ can resume without re-discovering context.
 
 ## Remaining / known limitations
 
-- [ ] GitHub remote push — blocked on network/credential availability at
-      execution time (see FINAL REPORT in session transcript)
+- [ ] GitHub push — remote configured (origin → tyangk1/maison-douce);
+      push requires one interactive `gh auth login` or browser OAuth because
+      stored GCM credentials demand an interactive flow. Local repo is clean
+      and ready: `git push -u origin main`
 - [ ] Supabase/Vercel deployment requires human login (no credentials in env)
 - [ ] Payments are a labelled mock; Stripe adapter interface exists
 - [ ] Wishlist is localStorage-based for guests; server-synced for accounts
