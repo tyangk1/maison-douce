@@ -519,6 +519,7 @@ async function main() {
   await db.newsletterSubscriber.deleteMany();
   await db.contactMessage.deleteMany();
   await db.activityLog.deleteMany();
+  await db.siteSetting.deleteMany();
   await db.user.deleteMany();
 
   const catMap = new Map<string, string>();
