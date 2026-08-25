@@ -30,7 +30,10 @@ jobs:
           if git ls-files --error-unmatch .env 2>/dev/null; then
             echo "::error::.env is tracked in git — remove it"; exit 1
           fi
-          if grep -rIl --exclude-dir=node_modules --exclude-dir=.next -E "(sk_live_[0-9a-zA-Z]{20,}|ghp_[0-9a-zA-Z]{36}|SUPABASE_SERVICE_ROLE_KEY=.+)" .; then
+          # Real Supabase service keys are JWTs ("eyJ…"); the eyJ prefix avoids
+          # matching documentation examples and this workflow file itself.
+          if grep -rIl --exclude-dir=node_modules --exclude-dir=.next \
+            -E "(sk_live_[0-9a-zA-Z]{20,}|ghp_[0-9a-zA-Z]{36}|SUPABASE_SERVICE_ROLE_KEY=\"?eyJ)" .; then
             echo "::error::Potential secret committed"; exit 1
           fi
           echo "OK: no tracked .env, no obvious secrets"
