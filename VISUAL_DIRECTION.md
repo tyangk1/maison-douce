@@ -165,3 +165,4 @@ No Three.js dependency — raw GL achieves the effect at ~2KB instead of ~600KB.
 | CLS | 0 (aspect-ratio boxes reserved for all media) |
 | WebGL JS cost | dynamic chunk, idle-loaded, ≤ 3KB gz |
 
+
