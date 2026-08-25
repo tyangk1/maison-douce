@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { SmartImage } from "@/components/ui/smart-image";
+import { BakeryScenePanel } from "@/components/store/bakery-scene-panel";
 
 /**
  * The WebGL layer is dynamically imported after mount so it never blocks
@@ -38,10 +38,13 @@ export function Hero({
   secondaryCta: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef(0);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const imgY = useTransform(scrollYProgress, [0, 1], ["0%", reduce ? "0%" : "12%"]);
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, reduce ? 1 : 0.35]);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    scrollRef.current = v;
+  });
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-cream">
@@ -103,16 +106,7 @@ export function Hero({
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="relative aspect-[4/5] overflow-hidden rounded-card shadow-lift sm:aspect-[5/4] lg:aspect-[4/5]"
           >
-            <motion.div style={{ y: imgY }} className="absolute inset-[-10%]">
-              <SmartImage
-                src="https://images.unsplash.com/photo-1555507036-ab1f4038808a?q=85&w=1800&auto=format&fit=crop"
-                alt="Golden croissants on a linen-covered counter at Maison Douce"
-                priority
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
-            </motion.div>
+            <BakeryScenePanel scrollRef={scrollRef} />
           </motion.div>
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 16 }}
