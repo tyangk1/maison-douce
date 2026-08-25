@@ -64,7 +64,9 @@ jobs:
           AUTH_SECRET: "ci-only-secret-value-used-for-build-0123456789"
 
       - name: Seed smoke test (throwaway DB)
-        run: npx tsx prisma/seed.ts
+        run: |
+          npx prisma migrate deploy
+          npx tsx prisma/seed.ts
         env:
           DATABASE_URL: "file:./ci-seed.db"
           AUTH_SECRET: "ci-only-secret-value-used-for-build-0123456789"
