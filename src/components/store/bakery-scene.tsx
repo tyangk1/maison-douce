@@ -1,11 +1,13 @@
 "use client";
 
-import { Suspense, useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { ContactShadows, Float, useGLTF } from "@react-three/drei";
+import { ContactShadows, Float } from "@react-three/drei";
 import * as THREE from "three";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 export type SceneQuality = {
+  segments: number;
   dustCount: number;
   dpr: [number, number];
   grains: number;
@@ -19,46 +21,60 @@ export type SceneProps = {
 };
 
 /* ------------------------------------------------------------------ */
-/* Croissant — CC0 scan by Poly Haven (polyhaven.com, license CC0)     */
+/* Procedural sourdough boule — CPU-displaced icosahedron, built once  */
 /* ------------------------------------------------------------------ */
-function Croissant({ scrollRef }: { scrollRef: SceneProps["scrollRef"] }) {
-  const { scene } = useGLTF("/models/croissant.gltf");
-  const group = useRef<THREE.Group>(null);
+function useBouleGeometry(segments: number) {
+  return useMemo(() => {
+    // Polyhedron geometry is non-indexed (flat shading); merge duplicate
+    // vertices first so computeVertexNormals yields smooth organic normals.
+    const raw = new THREE.IcosahedronGeometry(1.35, segments);
+    const geo = mergeVertices(raw, 1e-4);
+    raw.dispose();
+    const pos = geo.attributes.position as THREE.BufferAttribute;
+    const v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) {
+      v.fromBufferAttribute(pos, i);
+      const n = v.clone().normalize();
+      // Layered organic displacement — oven-spring irregularity
+      const d =
+        0.09 * Math.sin(n.x * 3.1 + 1.3) * Math.sin(n.y * 2.3 - 0.7) +
+        0.05 * Math.sin(n.y * 5.2 + n.z * 3.9) +
+        0.03 * Math.sin(n.z * 9.1 + n.x * 7.3);
+      v.addScaledVector(n, d);
+      v.y *= 0.86; // gently proofed, slightly flattened
+      pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    geo.computeVertexNormals();
+    return geo;
+  }, [segments]);
+}
+
+function Boule({ segments, scrollRef }: { segments: number; scrollRef: SceneProps["scrollRef"] }) {
+  const geo = useBouleGeometry(segments);
+  const mesh = useRef<THREE.Mesh>(null);
   const bornAt = useRef<number | null>(null);
 
-  // Normalize: center + scale the scan to fill the frame regardless of
-  // the source model's real-world units.
-  const { clone, fitScale } = useMemo(() => {
-    const clone = scene.clone();
-    const box = new THREE.Box3().setFromObject(clone);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const fitScale = 2.85 / Math.max(size.x, size.y, size.z);
-    clone.position.set(-center.x, -box.min.y, -center.z);
-    return { clone, fitScale };
-  }, [scene]);
-
-  useFrame((state) => {
-    const g = group.current;
-    if (!g) return;
+  useFrame((state, delta) => {
+    const m = mesh.current;
+    if (!m) return;
     if (bornAt.current === null) bornAt.current = state.clock.elapsedTime;
     const age = state.clock.elapsedTime - bornAt.current;
-    // Cinematic entry: rotates in from a quarter turn while rising
-    const emerge = Math.min(age / 1.8, 1);
+    // Cinematic emergence: rises from 0.55 with soft overshoot over ~1.6s
+    const emerge = Math.min(age / 1.6, 1);
     const eased = 1 - Math.pow(1 - emerge, 3);
-    g.rotation.y = (1 - eased) * -1.1 + state.clock.elapsedTime * 0.1;
-    g.position.y = (1 - eased) * -0.7;
-    g.scale.setScalar(fitScale * (0.7 + 0.3 * eased));
-    // Present the top of the croissant to the camera
-    g.rotation.x = 0.42 + Math.sin(state.clock.elapsedTime * 0.35) * 0.03;
+    m.scale.setScalar(0.55 + 0.45 * eased);
+    m.rotation.y += delta * 0.12;
+    m.rotation.x = Math.sin(state.clock.elapsedTime * 0.3) * 0.04;
+    // Scroll: drifts upward and recedes as the hero hands off to content
     const s = scrollRef.current ?? 0;
-    g.position.y += s * 0.8;
+    m.position.y = s * 0.9;
+    m.scale.setScalar((0.55 + 0.45 * eased) * (1 - s * 0.18));
   });
 
   return (
-    <group ref={group} scale={fitScale}>
-      <primitive object={clone} />
-    </group>
+    <mesh ref={mesh} geometry={geo} position={[0, -0.1, 0]}>
+      <meshStandardMaterial color="#a97743" roughness={0.58} metalness={0.03} />
+    </mesh>
   );
 }
 
@@ -69,14 +85,14 @@ function FlourDust({ count, scrollRef }: { count: number; scrollRef: SceneProps[
   const points = useRef<THREE.Points>(null);
   const bornAt = useRef<number | null>(null);
 
-  const { geometry, sprite, speeds } = useMemo(() => {
+  const { geometry, sprite } = useMemo(() => {
     const positions = new Float32Array(count * 3);
-    const spd = new Float32Array(count);
+    const speeds = new Float32Array(count);
     for (let i = 0; i < count; i++) {
       positions[i * 3] = (Math.random() - 0.5) * 7;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 5;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 3.5;
-      spd[i] = 0.08 + Math.random() * 0.22;
+      speeds[i] = 0.08 + Math.random() * 0.22;
     }
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
@@ -90,8 +106,11 @@ function FlourDust({ count, scrollRef }: { count: number; scrollRef: SceneProps[
     grad.addColorStop(1, "rgba(255,244,224,0)");
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 64, 64);
-    return { geometry: geo, sprite: new THREE.CanvasTexture(cnv), speeds: spd };
+    const tex = new THREE.CanvasTexture(cnv);
+    return { geometry: geo, sprite: tex };
   }, [count]);
+
+  const speeds = useMemo(() => new Float32Array(count).map(() => 0.08 + Math.random() * 0.22), [count]);
 
   useFrame((state) => {
     const p = points.current;
@@ -127,7 +146,7 @@ function FlourDust({ count, scrollRef }: { count: number; scrollRef: SceneProps[
 }
 
 /* ------------------------------------------------------------------ */
-/* Crumbs — small instanced grains orbiting the composition            */
+/* Crumbs — small instanced grains orbiting the boule                  */
 /* ------------------------------------------------------------------ */
 function Crumbs({ count, scrollRef }: { count: number; scrollRef: SceneProps["scrollRef"] }) {
   const mesh = useRef<THREE.InstancedMesh>(null);
@@ -196,28 +215,29 @@ export default function BakeryScene({ quality, active, scrollRef, onReady }: Sce
     <Canvas
       dpr={quality.dpr}
       frameloop={active ? "always" : "never"}
-      camera={{ position: [0, 0.9, 5.9], fov: 38 }}
+      camera={{ position: [0, 0.35, 6.1], fov: 38 }}
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
       style={{ background: "transparent" }}
       aria-hidden
       onCreated={() => onReady?.()}
     >
-      <ambientLight intensity={0.8} color="#f6ead6" />
-      <directionalLight position={[3.5, 4.5, 2.5]} intensity={1.5} color="#ffd9a8" />
-      <directionalLight position={[-4.5, 2.5, -3]} intensity={0.9} color="#e8b98a" />
-      <Suspense fallback={null}>
-        <Rig scrollRef={scrollRef}>
-          <Float speed={1.1} rotationIntensity={0.06} floatIntensity={0.3}>
-            <Croissant scrollRef={scrollRef} />
-          </Float>
-          <Crumbs count={quality.grains} scrollRef={scrollRef} />
-          <FlourDust count={quality.dustCount} scrollRef={scrollRef} />
-          <ContactShadows position={[0, -1.75, 0]} opacity={0.35} scale={6} blur={2.6} far={3} color="#3a2a18" />
-        </Rig>
-      </Suspense>
+      <ambientLight intensity={0.75} color="#f6ead6" />
+      <directionalLight position={[3.5, 4.5, 2.5]} intensity={1.4} color="#ffd9a8" />
+      <directionalLight position={[-4.5, 2.5, -3]} intensity={1.1} color="#e8b98a" />
+      <pointLight position={[-3.5, 1.2, -2]} intensity={12} color="#c98d82" distance={12} />
+      <Rig scrollRef={scrollRef}>
+        <Float speed={1.1} rotationIntensity={0.08} floatIntensity={0.35}>
+          <Boule segments={quality.segments} scrollRef={scrollRef} />
+        </Float>
+        <Crumbs count={quality.grains} scrollRef={scrollRef} />
+        <FlourDust count={quality.dustCount} scrollRef={scrollRef} />
+        {/* flour ring dusted beneath the boule */}
+        <mesh position={[0, -1.6, 0]} rotation={[-Math.PI / 2, 0, 0.4]}>
+          <torusGeometry args={[1.6, 0.09, 10, 56]} />
+          <meshStandardMaterial color="#e9decf" roughness={0.95} />
+        </mesh>
+        <ContactShadows position={[0, -1.72, 0]} opacity={0.32} scale={6} blur={2.6} far={3} color="#3a2a18" />
+      </Rig>
     </Canvas>
   );
 }
-
-useGLTF.preload("/models/croissant.gltf");
-
