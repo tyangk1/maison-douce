@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 type Mode = "login" | "register";
@@ -15,7 +15,6 @@ export default function LoginPage() {
 }
 
 function AuthForm() {
-  const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next");
   const [mode, setMode] = useState<Mode>(sp.get("mode") === "register" ? "register" : "login");

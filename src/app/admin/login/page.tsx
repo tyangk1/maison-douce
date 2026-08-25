@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 
 export default function AdminLoginPage() {
@@ -12,7 +12,6 @@ export default function AdminLoginPage() {
 }
 
 function AdminLoginForm() {
-  const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") ?? "/admin/dashboard";
   const [email, setEmail] = useState("");
