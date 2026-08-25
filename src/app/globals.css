@@ -2,26 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --md-motion-fast: 160ms;
+    --md-motion-base: 320ms;
+    --md-motion-slow: 700ms;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-parchment text-espresso font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-caramel/30;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-espresso px-7 py-3 text-sm font-medium tracking-wide text-parchment transition-all duration-200 ease-elegant hover:bg-bark hover:shadow-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caramel disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-espresso/25 bg-transparent px-7 py-3 text-sm font-medium tracking-wide text-espresso transition-all duration-200 ease-elegant hover:border-espresso hover:bg-espresso hover:text-parchment focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-caramel px-7 py-3 text-sm font-semibold tracking-wide text-espresso transition-all duration-200 ease-elegant hover:brightness-105 hover:shadow-lift focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-espresso disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .input-field {
+    @apply w-full rounded-lg border border-espresso/15 bg-white px-4 py-2.5 text-sm text-espresso placeholder:text-espresso/40 transition-colors focus:border-caramel focus:outline-none focus:ring-2 focus:ring-caramel/30 disabled:bg-sand/40;
+  }
+  .field-label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wider text-bark;
+  }
+  .field-error {
+    @apply mt-1 text-xs text-red-700;
+  }
+  .eyebrow {
+    @apply text-xs font-medium uppercase tracking-[0.22em] text-cocoa/80;
+  }
+  .card-surface {
+    @apply rounded-card border border-espresso/8 bg-white shadow-card;
   }
 }
