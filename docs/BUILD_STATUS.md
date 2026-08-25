@@ -3,7 +3,7 @@
 Living checkpoint file. Updated at meaningful milestones so another session
 can resume without re-discovering context.
 
-**Last updated:** 2026-08-25
+**Last updated:** 2026-08-25 (release-engineering pass complete)
 
 ## Completed
 
@@ -52,3 +52,4 @@ can resume without re-discovering context.
 npm install && npx prisma migrate deploy && npm run seed && npm run dev
 npm test && npm run build   # verify health
 ```
+
